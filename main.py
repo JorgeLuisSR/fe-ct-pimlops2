@@ -12,11 +12,11 @@ movies.shape
 cast.shape
 directors.shape
 
-months = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","dicienmbre"]
+months = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"]
 weekdays = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
 
 
-async def get_movie_description(row):
+def get_movie_description(row):
     return f'{row["title"]} | {row["release_date"]} | retorno: {row["return"]} , costo: {row["budget"]} , ganancia: {row["revenue"]}'
 
 @app.get("/")
@@ -25,13 +25,19 @@ async def read_root():
 
 @app.get("/cantidad_filmaciones_mes")
 async def cantidad_filmaciones_mes( Mes : str):  
-    index = months.index(Mes.lower()) +1
+    try:
+        index = months.index(Mes.lower()) +1
+    except ValueError:
+        return f"{Mes} no es un mes valido"
     movies_in_month = movies[pd.to_datetime(movies["release_date"]).dt.month == index]
     return f"{len(movies_in_month)} películas fueron estrenadas en el mes de {Mes.lower().capitalize()}"
 
 @app.get("/cantidad_filmaciones_dia")
 async def cantidad_filmaciones_dia( Dia :str): 
-    index = weekdays.index(Dia.lower())
+    try:
+        index = weekdays.index(Dia.lower())
+    except ValueError:
+        return f"{Dia} no es un dia valido"
     movies_in_day = movies[pd.to_datetime(movies["release_date"]).dt.weekday == index]
     return f"{len(movies_in_day)} películas fueron estrenadas en los días {Dia.lower().capitalize()}"
 
@@ -97,4 +103,5 @@ async def get_director( nombre_director ):
     for _, m in directed_movies.iterrows():
         movies_desc += get_movie_description(m) + "\n"
     
-    return f'El actor {direc["name"]} ha participado de {dirs} cantidad de filmaciones, el mismo ha conseguido un retorno de {ret} con un promedio de {ret/dirs :.6f} por filmación.\n {movies_desc}'
+    return f'El director {direc["name"]} ha participado de {dirs} cantidad de filmaciones, el mismo ha conseguido un retorno de {ret} con un promedio de {ret/dirs :.6f} por filmación.\n {movies_desc}'
+
