@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.preprocessing import StandardScaler
 import pandas as pd
 import ast
 
@@ -7,6 +9,7 @@ app = FastAPI()
 movies = pd.read_csv("datasets/movies_final.csv", index_col = ["id"])
 cast = pd.read_csv("datasets/cast.csv", index_col = ["id"])
 directors = pd.read_csv("datasets/directors.csv", index_col = ["id"])
+data_ml = pd.read_csv('datasets/ml_encoded_data.csv')
 
 movies.shape
 cast.shape
@@ -105,3 +108,33 @@ async def get_director( nombre_director ):
     
     return f'El director {direc["name"]} ha participado de {dirs} cantidad de filmaciones, el mismo ha conseguido un retorno de {ret} con un promedio de {ret/dirs :.6f} por filmación.\n {movies_desc}'
 
+scaler = StandardScaler()
+features = data_ml[['popularity', 'return', 'vote_average', 'release_year', 'runtime']]
+scaled_features = pd.DataFrame(scaler.fit_transform(features.values))
+
+cols =data_ml[["id",'16','35','10751','12','14','10749','18','28','80','53','27','36','878','9648','10752','10402','99','37','10769','10770','en','fr','es','de','it','ja','ru','zh','pt','cn','other_lang']]
+
+final_features= pd.concat([scaled_features, cols], axis=1)
+final_features.fillna(0, inplace=True)
+
+
+@app.get("/get_director")
+async def recomendacion(titulo, num_recommendations=5):
+
+    try:
+        movie_data= movies[movies['title'].str.lower() == titulo.lower()].iloc[0]
+    except IndexError:
+        return f"Movie '{titulo}' not found in the dataset."
+    
+    movie_features = final_features[final_features["id"]==movie_data.name].drop(columns="id").values.reshape(1, -1)
+    # Compute cosine similarity with the feature matrix
+    
+    similaryties = list(enumerate(cosine_similarity(movie_features,final_features.drop(columns="id"))[0]))
+    
+    sim = sorted(similaryties, reverse=True, key=lambda t: t[1])
+    # Get indices of the most similar movies (skip the first one because it's the same movie)
+    
+    similar_indices =sim[1:num_recommendations + 1]
+    idx = [final_features.loc[i[0], "id"] for i in similar_indices ]
+    # Return recommended movie titles
+    return movies.loc[idx]["title"].tolist()
