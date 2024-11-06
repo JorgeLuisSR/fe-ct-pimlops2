@@ -118,7 +118,7 @@ final_features= pd.concat([scaled_features, cols], axis=1)
 final_features.fillna(0, inplace=True)
 
 
-@app.get("/get_director")
+@app.get("/recomendacion")
 async def recomendacion(titulo, num_recommendations=5):
 
     try:
